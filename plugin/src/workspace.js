@@ -20,13 +20,17 @@ export function workspaceAccess(getRoots,fallback=process.env.GPT_COMMENTER_PROJ
   const connected=new Set(),singleFiles=new Map();
   async function roots() {
     let advertised=[];
-    try{advertised=await getRoots();}catch{}
+    try{advertised=await getRoots();}catch{
+      // Retry a transient host roots RPC once; never mistake an RPC failure for revoked access.
+      try{advertised=await getRoots();}catch{throw Error('Could not refresh project access. Please try again.');}
+    }
     const paths=advertised.filter(x=>x.uri?.startsWith('file:')).map(x=>fileURLToPath(x.uri));
     if(!paths.length && fallback)paths.push(fallback);
     allowed=await Promise.all(paths.map(p=>realpath(p)));
     return allowed;
   }
   async function inside(root,path) {
+    root=await realpath(root);
     const folderAccess=allowed.includes(root) || connected.has(root);
     if(!folderAccess && !singleFiles.has(root))throw Error('Project is no longer available. Refresh the file tree.');
     const target=await existingPath(resolve(root,path)),rel=relative(root,target);
@@ -45,7 +49,7 @@ export function workspaceAccess(getRoots,fallback=process.env.GPT_COMMENTER_PROJ
       if(!singleFiles.has(root))singleFiles.set(root,new Set());singleFiles.get(root).add(target);
       return {singleFile:true,singlePath:path,rootPath:root,root:{name:basename(root),type:'directory',path:'',children:[{type:'file',name:basename(target),path,supported:true}]}};
     },
-    async sourceDiscoveryAllowed(root){await roots();return allowed.includes(root) || connected.has(root);},
+    async sourceDiscoveryAllowed(root){await roots();root=await realpath(root);return allowed.includes(root) || connected.has(root);},
     async resolve(root,path){await roots();return inside(root,path);},
     async nativeOfficePath(root,path){
       await roots();const target=await inside(root,path);
@@ -98,6 +102,18 @@ export function workspaceAccess(getRoots,fallback=process.env.GPT_COMMENTER_PROJ
       try{if(kind==='directory')await mkdir(target);else{const handle=await open(target,'wx');await handle.close();}}
       catch(error){if(error.code==='EEXIST')throw Error('A file or folder with that name already exists.');throw error;}
       return {path:relative(root,target),kind};
+    },
+    async addImage(root,folder,mime,data) {
+      await roots();
+      if(!allowed.includes(root) && !connected.has(root))throw Error('Open a project folder before pasting an image.');
+      const extensions={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp'};
+      const ext=extensions[mime];if(!ext || typeof data!=='string' || data.length>28*1024*1024 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data))throw Error('Paste a PNG, JPEG, GIF, or WebP image under 20 MB.');
+      const bytes=Buffer.from(data,'base64');
+      if(bytes.length>20*1024*1024 || !({'image/png':bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'image/jpeg':bytes[0]===255 && bytes[1]===216 && bytes[2]===255,'image/gif':bytes.subarray(0,3).toString()==='GIF','image/webp':bytes.subarray(0,4).toString()==='RIFF' && bytes.subarray(8,12).toString()==='WEBP'})[mime])throw Error('The clipboard image data is invalid or too large.');
+      const parent=await inside(root,folder || '.');if(!(await stat(parent)).isDirectory())throw Error('Choose a project folder.');
+      const name=`pasted-image-${randomUUID()}.${ext}`,target=join(parent,name);
+      const handle=await open(target,'wx');try{await handle.writeFile(bytes);}finally{await handle.close();}
+      return {path:relative(root,target),name};
     },
     async rename(root,path,name) {
       await roots();

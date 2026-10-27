@@ -18,19 +18,19 @@ export function clippedPdfWord(word,startOffset,endOffset,span){
  }
  return {x:word.x+word.width*left,y:word.y,width:word.width*(right-left),height:word.height};
 }
-export function createPdfViewer(container,{loadPage,onSelection,onNote,onError,onPage=()=>{},onZoom=()=>{},onRegionMode=()=>{}}){
+export function createPdfViewer(container,{loadPage,onSelection,onNote,onError,onReady=()=>{},onPage=()=>{},onZoom=()=>{},onRegionMode=()=>{}}){
   let document=null,epoch=0,notes=[],resizeObserver=null,intersection=null;
-  let regionMode=false,drag=null;
+  let regionMode=false,drag=null,findSpan=()=>{};
   function setRegionMode(value){regionMode=!!value;container.classList.toggle('pdf-region-mode',regionMode);if(drag){drag.box.remove();drag=null;}onRegionMode(regionMode);}
   const frames=new Map();let zoom=1,resizePages=()=>{},currentPage=1,pageObserver=null;
-  function destroy(){setRegionMode(false);++epoch;resizeObserver?.disconnect();intersection?.disconnect();pageObserver?.disconnect();pageObserver=null;resizeObserver=intersection=null;frames.clear();container.replaceChildren();document=null;}
+  function destroy(){findSpan=()=>{};setRegionMode(false);++epoch;resizeObserver?.disconnect();intersection?.disconnect();pageObserver?.disconnect();pageObserver=null;resizeObserver=intersection=null;frames.clear();container.replaceChildren();document=null;}
   function marks(){
     for(const {page,highlights,wordSpans} of frames.values()){
       highlights.replaceChildren();
       for(const item of notes){
         if(item.pdf?.region){
           if(item.pdf.page!==page.number)continue;
-          const r=item.pdf.region,mark=window.document.createElement('button');mark.className='pdf-region-note annotation-icon';mark.setAttribute('aria-label',`Screenshot comment on PDF page ${page.number}`);mark.title=item.anchorStatus==='edited'?'PDF changed — review this screenshot comment':item.message || 'Screenshot selection';
+          const r=item.pdf.region,mark=window.document.createElement(item.temporary?'div':'button');mark.className=item.temporary?'pdf-region-drag':'pdf-region-note annotation-icon';if(!item.temporary){mark.setAttribute('aria-label',`Screenshot comment on PDF page ${page.number}`);mark.title=item.anchorStatus==='edited'?'PDF changed — review this screenshot comment':item.message || 'Screenshot selection';}
           Object.assign(mark.style,{left:`${r.x}px`,top:`${r.y}px`,width:`${r.width}px`,height:`${r.height}px`});
           if(!item.temporary){mark.dataset.annotation=item.id;mark.textContent=item.kind==='explanation'?'?':'▤';mark.addEventListener('click',event=>{event.stopPropagation();onNote(item,mark.getBoundingClientRect());});}
           highlights.append(mark);continue;
@@ -58,6 +58,8 @@ export function createPdfViewer(container,{loadPage,onSelection,onNote,onError,o
       const canvas=window.document.createElement('div');canvas.className='pdf-page';canvas.style.width=`${page.width}px`;canvas.style.height=`${page.height}px`;
       // Give vector images their actual display size, outside the scaled text overlay.
       const image=window.document.createElement('img');image.alt='';image.draggable=false;image.className='pdf-image';
+      image.addEventListener('load',()=>{if(current===epoch && page.number===1)onReady();},{once:true});
+      image.addEventListener('error',()=>{if(current===epoch)onError(Error('Unable to load this page.'));},{once:true});
       const highlights=window.document.createElement('div');highlights.className='pdf-notes';canvas.append(highlights);for(const link of data.navigation?.links?.[page.number] || []){
         const anchor=window.document.createElement('a');anchor.className='pdf-link';anchor.title=link.page?`Go to page ${link.page}`:link.url;
         Object.assign(anchor.style,{position:'absolute',zIndex:3,left:`${link.x}px`,top:`${link.y}px`,width:`${link.width}px`,height:`${link.height}px`});
@@ -66,6 +68,14 @@ export function createPdfViewer(container,{loadPage,onSelection,onNote,onError,o
       }
       frame.append(image,canvas);stack.append(frame);frames.set(page.number,{page,frame,canvas,image,highlights,wordSpans:new Map(),loaded:false});
     }
+    findSpan=(from,to)=>{
+      const page=data.pages.find(p=>from>=p.startOffset && from<p.endOffset);if(!page)return;
+      load(page.number);
+      for(const span of container.querySelectorAll('.pdf-search-match'))span.classList.remove('pdf-search-match');
+      const entry=frames.get(page.number),matches=[...entry.wordSpans.values()].filter(span=>Number(span.dataset.end)>from && Number(span.dataset.start)<to);
+      for(const span of matches)span.classList.add('pdf-search-match');
+      (matches[0] || entry.frame).scrollIntoView?.({block:'center',behavior:'instant'});
+    };
     resizePages=resize;resize();container.scrollLeft=(parseFloat(stack.style.width)-Math.max(100,container.getBoundingClientRect().width))/2;marks();onZoom(zoom);
     if(typeof ResizeObserver!=='undefined'){resizeObserver=new ResizeObserver(resize);resizeObserver.observe(container);}
     if(typeof IntersectionObserver!=='undefined'){
@@ -147,7 +157,7 @@ export function createPdfViewer(container,{loadPage,onSelection,onNote,onError,o
   });
   container.addEventListener('pointercancel',()=>{if(drag)setRegionMode(false);});
   window.addEventListener('keydown',event=>{if(event.key==='Escape' && regionMode)setRegionMode(false);});
-  return {show,destroy,
+  return {show,destroy,findSpan:(from,to)=>findSpan(from,to),
     setZoom,wheelZoom,setRegionMode,
     zoom:()=>zoom,
     goToPage(number){const entry=frames.get(Math.max(1,Math.min(frames.size,number)));entry?.frame.scrollIntoView({behavior:'smooth',block:'start'});},

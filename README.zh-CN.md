@@ -20,7 +20,13 @@ MarkAtlas 将文件审阅中的批注整理成清晰的 AI 请求。阅读文档
 
 审阅栏会显示待发送的文件数和批注数。每份上下文都包含对应文件的位置；编号将截图与批注一一对应。已发送或删除的批注不会在查看器中留下高亮。
 
+
 ## 在同一工作区处理不同文件
+
+<p align="center"><img src="docs/gifs/00-supported-files.png" width="600" alt="MarkAtlas 支持的文件类型"></p>
+
+> MarkAtlas 支持 Markdown、代码、纯文本、LaTeX、PDF 和图片。
+
 
 | 格式 | 支持的操作 |
 | --- | --- |
@@ -32,15 +38,41 @@ MarkAtlas 将文件审阅中的批注整理成清晰的 AI 请求。阅读文档
 
 从项目树打开 Office 文件时，会使用宿主应用的原生查看器。对于支持的文档输入，MarkAtlas 也提供只读 DOCX 预览。
 
+
 ## 先理解，再修改
 
-选中内容后，选择 **Explanation（解释）** 和详细程度。AI 解释会直接显示在选区面板中，无需另开聊天标签页。如果宿主支持 MCP sampling，就使用宿主的模型调用能力；否则，通过 Codex CLI 在后台新建临时会话。请求会包含完整选区和附带截图，为解释提供必要上下文。
+选中内容后，选择 **Explanation（解释）** 和详细程度，还可以选择输入提示词说明想了解什么。AI 解释会直接显示在选区面板中，无需另开聊天标签页。如果宿主支持 MCP sampling，就使用宿主的模型调用能力；否则，通过 Codex CLI 在后台新建临时会话。请求会包含完整选区和附带截图，为解释提供必要上下文。
+
+<p align="center"><img src="docs/gifs/01-comment-and-explain.gif" width="900" alt="选中文本、添加批注或询问解释"></p>
+
+> 选中文字，写下希望修改的内容，或直接在文档中询问解释。
 
 ## 批注跟随编辑更新
 
 发送前，批注会随文本编辑调整位置。删除已批注的段落，会同时删除对应批注；绑定旧版 PDF 的截图批注也会被移除。发送时，系统会先完成待处理的自动保存，再检查剩余文件引用。如果文件被外部程序修改，请刷新后再发送审阅内容。
 
 最终请求使用当前文件位置，并保留你已有的编辑。发送后文件仍可能变化，因此助手会被要求在修改前核对引用的段落。
+
+<p align="center"><img src="docs/gifs/02-review-comments.gif" width="900" alt="打开并筛选批注和解释，然后从批注跳转到文档中的对应位置"></p>
+
+> 左：打开并筛选当前文件的批注和解释。右：从批注跳转到文档中的对应位置。
+
+<p align="center"><img src="docs/gifs/03-send-review-request.gif" width="800" alt="只生成补丁而不改动文件、发送请求，并打开完成后的聊天回复"></p>
+
+> 流程：对选中内容添加批注，发送审阅请求，再点击底部悬浮卡片打开聊天会话。
+
+## 先审阅，再修改
+
+MarkAtlas 支持**仅生成补丁**模式。发送前打开 **Patches（补丁）** 开关，AI 智能体只会生成补丁，不会改动原文件。你可以预览建议的补丁，直接在补丁视图中要求修改，并在满意后再应用。审阅建议修改期间，原文件始终保持不变。
+
+<p align="center"><img src="docs/gifs/04-review-and-revise-patch.gif" width="900" alt="开启补丁生成并发送审阅请求，然后要求修改并收到更新后的方案"></p>
+
+> 开启“仅生成补丁”后发送审阅请求；可以随时对建议的修改追加批注，要求修改并收到更新后的方案。
+
+
+<p align="center"><img src="docs/gifs/05-apply-updated-patch.gif" width="800" alt="刷新补丁、接受当前修改，并将其应用到原文件"></p>
+
+> 刷新补丁以查看最新版本；修改满意后，接受并应用当前补丁；回到原文件查看更新后的版本。
 
 ## 文件访问与 AI 上下文
 
@@ -115,7 +147,7 @@ npm run build --prefix plugin
 
 ## 第三方组件与致谢
 
-部分样式来源于或改编自 [Blue Topaz](https://github.com/PKM-er/Blue-Topaz_Obsidian-css)，特此感谢 [WhyI](https://github.com/whyt-byte) 和 [pkmer.cn](https://pkmer.cn)。
+部分样式来源于或改编自 Blue Topaz（https://github.com/PKM-er/Blue-Topaz_Obsidian-css），特此感谢 WhyI（https://github.com/whyt-byte）和 pkmer.cn（https://pkmer.cn）。
 
 该主题采用 MIT 许可证；版权声明及完整许可文本已保留在 [blue-topaz.css](plugin/assets/obsidian/blue-topaz.css) 中。
 

@@ -38,6 +38,25 @@ $('mode-cycle').click();assert.equal($('mode-cycle').getAttribute('aria-label'),
 assert.equal(window.document.body.dataset.treeSide,'left');
 assert.equal($('file-find'),null);assert.equal($('file-search'),null);$('project-search-toggle').click();assert.equal($('project-search-overlay').hidden,false);$('project-search-close').click();assert.equal($('project-search-overlay').hidden,true);
 $('width-mode').click();assert.equal(window.document.body.classList.contains('full-width'),true);$('width-mode').click();
+assert.equal($('wrap-lines').getAttribute('aria-pressed'),'false');
+assert.equal($('wrap-lines').parentElement.className,'toolbar-actions');assert.equal($('width-mode').nextElementSibling,$('wrap-lines'),'wrap stays beside width inside the icon group');
+assert.equal($('mode-cycle').hidden,false);assert.equal($('wrap-lines').hidden,true,'Preview has no wrapping control');
+$('mode-cycle').click();assert.equal($('wrap-lines').hidden,true,'Edit has no wrapping control');
+$('mode-cycle').click();assert.equal($('wrap-lines').hidden,false,'Source exposes wrapping');
+$('wrap-lines').click();assert.equal(window.document.body.classList.contains('wrap-lines'),true);assert.equal(window.localStorage.getItem('markatlas:wrap-lines'),'true');
+assert.equal($('document').querySelector('.cm-content').classList.contains('cm-lineWrapping'),true,'source mode wraps');
+$('mode-cycle').click();assert.equal($('wrap-lines').hidden,true);assert.equal(window.document.body.classList.contains('wrap-lines'),false,'source wrapping does not alter Preview');
+$('mode-cycle').click();assert.equal($('wrap-lines').hidden,true);
+$('mode-cycle').click();assert.equal($('wrap-lines').hidden,false);assert.equal($('document').querySelector('.cm-content').classList.contains('cm-lineWrapping'),true,'returning to Source restores wrapping');
+const sourceEditorBeforeWrap=$('document').querySelector('.cm-editor'),sourceTextBeforeWrap=sourceEditorBeforeWrap.textContent;
+const saveWrapPreference=window.Storage.prototype.setItem;
+window.Storage.prototype.setItem=function(){throw new window.DOMException('Cache full','QuotaExceededError');};
+$('wrap-lines').click();assert.equal($('document').querySelector('.cm-content').classList.contains('cm-lineWrapping'),false);
+assert.equal($('wrap-lines').getAttribute('aria-pressed'),'false','source wrapping updates even if preferences cannot be saved');
+assert.equal(window.document.body.classList.contains('wrap-lines'),false);
+assert.equal($('document').querySelector('.cm-editor'),sourceEditorBeforeWrap);assert.equal(sourceEditorBeforeWrap.textContent,sourceTextBeforeWrap);
+window.Storage.prototype.setItem=saveWrapPreference;
+$('mode-cycle').click();
 $('comments-toggle').click();assert.equal($('review-batch').hidden,false);assert.equal($('project-drawer').hidden,false,'both sidebars coexist');
 $('tree-toggle').click();assert.equal(window.document.body.classList.contains('comments-open'),true);$('tree-toggle').click();$('comments-toggle').click();
 const resizeHandle=$('tree-resize');
@@ -292,8 +311,11 @@ window.codeProject=true;window.projectText='const value = 1;\n';window.projectEt
 $('project-tree').querySelector('[data-project-path="code.js"]').click();await until(()=>$('filename').textContent==='code.js' && $('view-toggle').hidden);
 assert.equal($('project-drawer').hidden,false,'opening a file keeps the tree open');
 assert.equal($('mode-cycle').disabled,true);assert.equal($('view-toggle').hidden,true);assert.equal($('code-edit').textContent,'Edit');assert.equal($('code-edit').getAttribute('aria-pressed'),'true');assert.equal($('code-save'),null);assert.equal($('code-discard'),null);
+assert.equal($('mode-cycle').hidden,true);assert.equal($('code-edit').hidden,true);assert.equal($('wrap-lines').hidden,false,'source-only files expose wrapping without a mode switch');
 let code=CMView.findFromDOM($('document').querySelector('.cm-editor'));
 assert.equal(code.state.readOnly,false);assert.equal(code.state.doc.toString(),'const value = 1;\n');
+$('wrap-lines').click();assert.equal(code.contentDOM.classList.contains('cm-lineWrapping'),true,'code files wrap without rebuilding the editor');
+$('wrap-lines').click();assert.equal(code.contentDOM.classList.contains('cm-lineWrapping'),false,'code files return to single lines');
 $('code-edit').click();code=CMView.findFromDOM($('document').querySelector('.cm-editor'));assert.equal(code.state.readOnly,true);assert.equal($('code-edit').getAttribute('aria-pressed'),'false');
 $('code-edit').click();code=CMView.findFromDOM($('document').querySelector('.cm-editor'));assert.equal(code.state.readOnly,false);
 
@@ -352,7 +374,7 @@ $('project-tree').querySelector('[data-project-path="live.md"]').click();await f
 window.resources={async read(){return {contents:[{text:'Unknown format, plain text.'}]};}};
 await window.testApp.listeners.toolinput({arguments:{file:{name:'notes.custom',resourceUri:'file:///notes.custom'}}});
 assert.equal(CMView.findFromDOM($('document').querySelector('.cm-editor')).state.doc.toString(),'Unknown format, plain text.');
-assert.equal($('view-toggle').hidden,true);assert.equal($('code-edit').hidden,false);
+assert.equal($('view-toggle').hidden,true);assert.equal($('code-edit').hidden,true);
 // LaTeX uses its own syntax mode in both editable and read-only source views.
 const latexSource=String.raw`% A LaTeX comment
 \documentclass{article}
@@ -410,7 +432,7 @@ window.dispatchEvent(new window.Event('focus'));await until(()=>$('document').qu
 window.projectSnapshot=null;window.projectFileName='settings.custom';window.codeProject=false;window.projectText='setting = true';window.projectEtag='100';
 window.dispatchEvent(new window.Event('focus'));await flush();await flush();
 $('project-tree').querySelector('[data-project-path="settings.custom"]').click();await until(()=>$('filename').textContent==='settings.custom');
-assert.equal($('code-edit').hidden,false);assert.equal($('comment').disabled,false);
+assert.equal($('code-edit').hidden,true);assert.equal($('comment').disabled,false);
 $('mode-cycle').click();$('mode-cycle').click();
 const unknownView=CMView.findFromDOM($('document').querySelector('.cm-editor'));assert.equal(unknownView.state.readOnly,false);
 unknownView.dispatch({changes:{from:10,to:14,insert:'false'}});await new Promise(resolve=>setTimeout(resolve,600));await flush();

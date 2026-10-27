@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {JSDOM} from 'jsdom';
+import {trackHostBottomInset} from './src/host-bottom-inset.js';
+const {window}=new JSDOM('');
+const viewport=new window.EventTarget();Object.assign(viewport,{height:window.innerHeight,offsetTop:0,scale:1});window.visualViewport=viewport;
+const update=trackHostBottomInset(window),bottom=()=>window.document.documentElement.style.getPropertyValue('--host-bottom-inset');
+assert.equal(bottom(),'0px');update({safeAreaInsets:{bottom:90}});assert.equal(bottom(),'90px');
+update({theme:'dark'});assert.equal(bottom(),'90px');
+update({safeAreaInsets:{bottom:180}});assert.equal(bottom(),'180px');
+update({safeAreaInsets:{bottom:0}});assert.equal(bottom(),'0px');
+viewport.height-=100;viewport.dispatchEvent(new window.Event('resize'));assert.equal(bottom(),'100px');
+update({safeAreaInsets:{bottom:80}});assert.equal(bottom(),'100px','do not double count overlapping insets');
+viewport.scale=2;viewport.dispatchEvent(new window.Event('resize'));assert.equal(bottom(),'80px','pinch zoom does not count as host occlusion');
+update({safeAreaInsets:null});assert.equal(bottom(),'0px');window.close();console.log('Host inset expansion, minimization, partial context and viewport changes passed');

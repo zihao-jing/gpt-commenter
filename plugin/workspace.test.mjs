@@ -13,6 +13,12 @@ try {
  const access=workspaceAccess(async()=>supplied);
  const listed=await access.list();assert.equal(listed.rootPath,root);assert.equal(listed.root.name,'project');
  assert.equal(listed.root.children.length,2);assert.ok(listed.omitted>=2);
+ // Equivalent root spellings must not trigger a false project-disconnected error.
+ await symlink(root,join(base,'project-alias'));
+ assert.equal((await access.read(join(base,'project-alias'),'docs/page.md')).text,'# Current project');
+ let failures=1;const transient=workspaceAccess(async()=>{if(failures-->0)throw Error('Temporary host RPC failure');return supplied;});
+ assert.equal((await transient.read(root,'docs/page.md')).text,'# Current project');
+ const offline=workspaceAccess(async()=>{throw Error('Offline');});await assert.rejects(()=>offline.read(root,'docs/page.md'),/Could not refresh project access/);
  const first=await access.read(root,'docs/page.md');assert.equal(first.text,'# Current project');
  const unchanged=await access.read(root,'docs/page.md',first.etag);assert.equal(unchanged.notModified,true);assert.equal(unchanged.text,undefined);
  await writeFile(join(root,'docs','page.md'),'# Changed by chat');

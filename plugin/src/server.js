@@ -131,6 +131,11 @@ registerAppTool(server,'save_review_project_file',{
   inputSchema:{root:z.string(),path:z.string(),text:z.string().max(5*1024*1024),expectedEtag:z.string()},
   _meta:{ui:{visibility:['app']}},annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:false}
 },async({root,path,text,expectedEtag})=>({content:[],structuredContent:await workspace.save(root,path,text,expectedEtag)}));
+registerAppTool(server,'paste_review_project_image',{
+  description:'Save a pasted image beside the current Markdown file in a connected project.',
+  inputSchema:{root:z.string(),folder:z.string(),mime:z.enum(['image/png','image/jpeg','image/gif','image/webp']),data:z.string().max(28*1024*1024)},
+  _meta:{ui:{visibility:['app']}},annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
+},async({root,folder,mime,data})=>({content:[],structuredContent:await workspace.addImage(root,folder,mime,data)}));
 registerAppTool(server,'move_review_project_file',{
   description:'Move a file to another folder within a connected project without overwriting existing files.',
   inputSchema:{root:z.string(),path:z.string(),folder:z.string()},

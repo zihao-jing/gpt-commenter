@@ -230,4 +230,7 @@ plugin/node_modules/
 /releases/
 /submission/tmp/
 
+# Local installed PDF and TeX runtimes (not source code)
+/plugin/runtime/
+
 .markatlas/

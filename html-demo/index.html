@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MarkAtlas HTML Demo</title>
+<style>body{max-width:720px;margin:64px auto;padding:0 24px;font:16px/1.6 system-ui;color:#342d42;background:#faf8fd}h1{color:#7855a6}section{padding:24px;background:white;border:1px solid #e3dceb;border-radius:16px}button{background:#7955a7;color:white;border:0;border-radius:999px;padding:10px 18px;font:inherit;cursor:pointer}mark{background:#ede1ff}#status{color:#7855a6}</style>
+<h1>MarkAtlas HTML Demo</h1><section><p>This is a simple HTML page, rendered as a webpage.</p><p>Select this sentence to try your review tools. <mark>This text is highlighted.</mark></p><p>This local demo checks typography, styling, and button interactions.</p><button id="hello">Test JavaScript</button><p id="status" aria-live="polite">Ready.</p></section>
+<script>let count=0;document.getElementById('hello').onclick=()=>{document.getElementById('status').textContent='JavaScript works! Clicks: '+(++count)};</script></html>

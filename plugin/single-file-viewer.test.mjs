@@ -27,6 +27,18 @@ window.pdfVersion='one';window.singlePDF={main:null,text:'First passage\n\nSecon
 await flush();await flush();
 await window.testApp.listeners.toolinput({arguments:{file:{name:'report.pdf',resourceUri:'file:///outside/report.pdf'}}});
 assert.equal(window.lastSingleOpen.path,'/outside/report.pdf');assert.equal($('project-tree').querySelectorAll('[data-project-path]').length,1);assert.equal($('project-tree').querySelector('[data-project-path]').dataset.projectPath,'report.pdf');assert.equal($('document').querySelectorAll('.pdf-frame').length,2);assert.equal($('pdf-tools').hidden,false);assert.equal($('pdf-screenshot').hidden,false);
+const regionFrame=$('document').querySelector('.pdf-frame'),regionImage=regionFrame.querySelector('img');
+regionFrame.getBoundingClientRect=()=>({left:0,top:0,right:600,bottom:800,width:600,height:800});
+Object.defineProperties(regionImage,{complete:{value:true},naturalWidth:{value:600},naturalHeight:{value:800}});
+window.HTMLCanvasElement.prototype.getContext=()=>({fillRect(){},drawImage(){}});
+window.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/jpeg;base64,Y3JvcA==';
+$('pdf-screenshot').click();
+regionFrame.dispatchEvent(new window.MouseEvent('pointerdown',{button:0,clientX:100,clientY:100,bubbles:true,cancelable:true}));
+regionFrame.dispatchEvent(new window.MouseEvent('pointermove',{button:0,clientX:180,clientY:160,bubbles:true,cancelable:true}));
+regionFrame.dispatchEvent(new window.MouseEvent('pointerup',{button:0,clientX:180,clientY:160,bubbles:true,cancelable:true}));
+assert.equal($('selection-action').hidden,false);assert.ok(regionFrame.querySelector('.pdf-notes .pdf-region-drag'),'area remains outlined before opening Comment');
+$('selection-action').click();assert.equal($('composer').hidden,false);assert.ok(regionFrame.querySelector('.pdf-notes .pdf-region-drag'),'area remains outlined while composing');
+escape();assert.equal(regionFrame.querySelector('.pdf-region-drag'),null,'cancel removes the uncommitted area');
 const lists=window.projectLists;window.dispatchEvent(new window.Event('focus'));await flush();assert.equal(window.projectLists,lists,'focus does not replace an explicit one-file tree with the host project');
 $('pdf-zoom-in').click();assert.equal($('pdf-zoom-level').textContent,'125%');
 const words=$('document').querySelectorAll('.pdf-word');const range=window.document.createRange();range.setStart(words[0].firstChild,0);range.setEnd(words[1].firstChild,7);window.getSelection().removeAllRanges();window.getSelection().addRange(range);words[1].dispatchEvent(new window.Event('pointerup',{bubbles:true}));if(!$('selection-action').hidden)$('selection-action').click();

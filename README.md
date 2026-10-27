@@ -20,7 +20,13 @@ Review the whole picture before asking AI to act.
 
 The review bar shows how many files and annotations are queued. Each context piece includes its file location, and numbered comments keep screenshots connected to their requests. Attached and deleted annotations leave no lingering highlights in the viewer.
 
+
 ## One workspace for different files
+
+<p align="center"><img src="docs/gifs/00-supported-files.png" width="600" alt="Supported file types in MarkAtlas"></p>
+
+> MarkAtlas support Markdown, code, plain text, LaTeX, PDF, and image.
+
 
 | Format | What you can do |
 | --- | --- |
@@ -32,15 +38,41 @@ The review bar shows how many files and annotations are queued. Each context pie
 
 Office files opened from the project tree use the host application's native viewer. MarkAtlas also includes a read-only DOCX preview for supported document inputs.
 
+
 ## Understand before you change
 
-Choose **Explanation** on a selection and select a detail level. MarkAtlas displays the AI explanation in the selection panel without opening another chat tab. It uses host MCP sampling when available, with a fresh background Codex CLI conversation as the fallback. These requests include the complete selection and any attached screenshot, so the explanation model has the context it needs.
+Choose **Explanation** on a selection with a detail level and optinally prompt for explanation. MarkAtlas displays the AI explanation in the selection panel without opening another chat tab. It uses host MCP sampling when available, with a fresh background Codex CLI conversation as the fallback. These requests include the complete selection and any attached screenshot, so the explanation model has the context it needs.
+
+<p align="center"><img src="docs/gifs/01-comment-and-explain.gif" width="900" alt="Select text, add a comment, or ask for an explanation"></p>
+
+> Select text, leave a comment describing the change you want, or ask for an explanation directly in the document.
 
 ## Comments that follow your work
 
 Annotations track edits before you send. Deleting an annotated passage removes its comment; screenshot comments tied to an older PDF are removed as well. Sending finishes pending autosaves and checks the remaining file references. If a file changed externally, refresh it before sending the review.
 
 The final request uses the current locations and preserves your existing edits. Files can still change after sending, so the assistant is instructed to match the quoted passages before making changes.
+
+<p align="center"><img src="docs/gifs/02-review-comments.gif" width="900" alt="Open and filter comments and explanations, then jump to a comment in the document"></p>
+
+> Left: Open and filter the current file's comments and explanations. Right: Jump from a comment to its location in the document.
+
+<p align="center"><img src="docs/gifs/03-send-review-request.gif" width="800" alt="Generate patches without changing the file, send a request, and open the completed chat response"></p>
+
+> Workflow: Leave a comment on selected contents, send the review request, and open the  chat session by clicking the bottom floating card.
+
+## Review before changing
+
+MarkAltas supports **patch-only** mode. By toggle **Patches** before send, the AI agent will only generate patches without changing the original file. You can preview a proposed patch, ask for revisions directly in patch view, and apply it only when it is ready. The original file stays intact while you review the suggested changes.
+
+<p align="center"><img src="docs/gifs/04-review-and-revise-patch.gif" width="900" alt="Send a review request with patch generation enabled, then request a revision and receive an updated proposal"></p>
+
+> Send a review request with "patch-only" enabled; Feel free to add follow-up comments on the proposed changes to request a revision and receive an updated proposal.
+
+
+<p align="center"><img src="docs/gifs/05-apply-updated-patch.gif" width="800" alt="Refresh the patch, accept the current changes, and apply them to the original file"></p>
+
+> Refresh the patch to see the latest version; When the changes are ready, accept and apply the current patches; Go back to the original file to view the updated version.
 
 ## File access and AI context
 

@@ -10,6 +10,6 @@ export async function trashProjectEntry(workspace,root,path,{platform=process.pl
  const target=await workspace.resolve(root,path),info=await lstat(target);
  if(target===root || target!==resolve(root,path) || (!info.isFile() && !info.isDirectory()))throw Error('Choose a regular file or folder.');
  // Pass the path as an argument; filenames are never evaluated as AppleScript.
- await run('/usr/bin/osascript',['-e','on run argv\n tell application "Finder" to delete (POSIX file (item 1 of argv))\nend run',target],{timeout:30000,maxBuffer:8192});
+ await run('/usr/bin/osascript',['-e','on run argv\n set targetItem to (POSIX file (item 1 of argv)) as alias\n tell application "Finder" to delete targetItem\nend run',target],{timeout:30000,maxBuffer:8192});
  return {deleted:true,path};
 }

@@ -49,6 +49,7 @@ createServer(async(req,res)=>{
    else if(name==='rename_review_project_file'){data=await workspace.rename(a.root,a.path,a.name);await reviews.renamed(a.root,a.path,data.path);}
    else if(name==='move_review_project_file')data=await workspace.move(a.root,a.path,a.folder);
    else if(name==='save_review_project_file')data=await workspace.save(a.root,a.path,a.text,a.expectedEtag);
+   else if(name==='paste_review_project_image')data=await workspace.addImage(a.root,a.folder,a.mime,a.data);
    else if(name==='read_latex_pdf')data=await latex.read(a.root,a.path,a.ifNoneMatch);
    else if(name==='render_latex_pdf_page')data=await latex.page(a.root,a.path,a.page,a.fingerprint,a.format ?? 'svg');
    else if(name==='locate_latex_pdf_selection')data=await latex.locate(a.root,a.path,a.selection);

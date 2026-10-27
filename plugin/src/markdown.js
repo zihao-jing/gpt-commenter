@@ -1,5 +1,6 @@
 import {applyTableColumns,tableCellText} from './table-layout.js';
 import {renderProperties} from './markdown-properties.js';
+import {parseHeadingProperties} from './heading-properties.js';
 import {fromMarkdown} from 'mdast-util-from-markdown';
 import {decodeString} from 'micromark-util-decode-string';
 import {gfm} from 'micromark-extension-gfm';
@@ -79,7 +80,18 @@ export function renderMarkdown(container, source, mode, items = [], options = {}
     const fragment=purify.sanitize(html,{RETURN_DOM_FRAGMENT:true,ADD_TAGS:['annotation','semantics'],ADD_ATTR:['encoding']});
     const walker=doc.createTreeWalker(fragment,4);let n;
     while(n=walker.nextNode()){mappedNodes.push(n);mappings.set(n,{start,end});}
+    const images=[...fragment.querySelectorAll('img[src]')];
     parent.append(fragment);
+    for(const image of images){
+      const target=image.getAttribute('src');
+      if(!target || /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(target) || !options.resolveEmbed)continue;
+      image.removeAttribute('src');
+      Promise.resolve(options.resolveEmbed(target)).then(result=>{
+        if(!result || result.kind!=='image'){image.setAttribute('src',target);return;}
+        if(!parent.contains(image))return;
+        image.src=result.url;
+      }).catch(error=>{image.setAttribute('src',target);image.classList.add('is-unresolved');image.title=error.message;});
+    }
   }
   function localLink(parent,target,label,start,end,embed=false){
     const link=doc.createElement(embed?'span':'a');link.className=embed?'internal-embed':'internal-link';
@@ -225,10 +237,10 @@ export function renderMarkdown(container, source, mode, items = [], options = {}
     text(pre, source, 0, source.length);
   } else {
     const parse=input=>fromMarkdown(input,{extensions:[gfm(),math(),frontmatter(['yaml','toml'])],mdastExtensions:[gfmFromMarkdown(),mathFromMarkdown(),frontmatterFromMarkdown(['yaml','toml'])]});
-    let tree=parse(source);
+    let tree=parseHeadingProperties(source,parse);
     const taskOffsets=[];
     function tasks(node){if(node.type==='listItem'){const start=node.position.start.offset,m=/^(?:[-+*]|\d+[.)])\s+\[([^\]\r\n])\](?=\s|$)/.exec(source.slice(start,node.position.end.offset));if(m)taskOffsets.push(start+m[0].length-2);}for(const child of node.children||[])tasks(child);}tasks(tree);
-    if(taskOffsets.length){const chars=source.split('');for(const offset of taskOffsets)chars[offset]='x';tree=parse(chars.join(''));}
+    if(taskOffsets.length){const chars=source.split('');for(const offset of taskOffsets)chars[offset]='x';tree=parseHeadingProperties(chars.join(''),parse);}
     function highlights(node){
       for(const child of node.children||[])highlights(child);
       if(!node.children || !['paragraph','heading','emphasis','strong','delete','link','tableCell'].includes(node.type))return;

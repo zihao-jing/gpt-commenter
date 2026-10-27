@@ -20,6 +20,7 @@ window.HTMLElement.prototype.scrollIntoView=function(options){jumped={node:this,
 const laterNote={id:'later',kind:'comment',startOffset:22,endOffset:29,pdf:{page:2}};
 viewer.show(data,[laterNote]);viewer.goToNote(laterNote);
 assert.equal(jumped.node.dataset.annotation,'later');assert.equal(jumped.node.closest('.pdf-frame').dataset.pdfPage,'2');assert.equal(jumped.options.block,'center');assert.equal(viewer.currentPage(),2);
+viewer.findSpan(22,29);assert.equal(container.querySelectorAll('.pdf-search-match').length,1);assert.equal(container.querySelector('.pdf-search-match').textContent.trim(),'passage');assert.equal(jumped.node,container.querySelector('.pdf-search-match'));
 viewer.goToNote({...laterNote,id:'missing'});assert.equal(jumped.node.dataset.pdfPage,'2');assert.equal(jumped.options.block,'start');
 viewer.show(data,[note]);
 const ordinaryScroll=new window.WheelEvent('wheel',{deltaY:100,bubbles:true,cancelable:true});container.dispatchEvent(ordinaryScroll);assert.equal(viewer.zoom(),1);assert.equal(ordinaryScroll.defaultPrevented,false,'ordinary wheel scrolling stays available');
@@ -66,5 +67,16 @@ for(const snapshot of [partialData,{...partialData}]){
 const measuredSpan={firstChild:{},ownerDocument:{createRange(){let start=0,end=0;return {setStart(node,value){start=value;},setEnd(node,value){end=value;},getBoundingClientRect(){const positions=[100,130,135,140];return {left:positions[start],right:positions[end],width:positions[end]-positions[start]};}};}}};
 const clipped=clippedPdfWord({text:'Wii',x:20,y:30,width:80,height:12,startOffset:0,endOffset:3},1,3,measuredSpan);
 assert.equal(clipped.x,80);assert.equal(clipped.width,20);assert.equal(clippedPdfWord(word,word.endOffset,word.endOffset+1),null);
-viewer.destroy();assert.equal(container.childElementCount,0);dom.window.close();delete globalThis.window;
+viewer.destroy();assert.equal(container.childElementCount,0);
+// Loading ends only after the first page image is ready; stale images cannot end a new load.
+let readyCount=0;
+const loadingViewer=createPdfViewer(container,{loadPage:async()=>({image:'data:image/png;base64,AA=='}),onReady:()=>readyCount++,onError:()=>{}});
+loadingViewer.show(data);
+assert.equal(readyCount,0);
+const loadingImages=[...container.querySelectorAll('img')];
+loadingImages[1].dispatchEvent(new window.Event('load'));assert.equal(readyCount,0);
+loadingImages[0].dispatchEvent(new window.Event('load'));assert.equal(readyCount,1);
+loadingViewer.show({...data});const staleImage=container.querySelector('img');loadingViewer.destroy();
+staleImage.dispatchEvent(new window.Event('load'));assert.equal(readyCount,1);
+dom.window.close();delete globalThis.window;
 console.log('Continuous PDF pages, native text selection, cross-page anchors, highlights, note reopening, and stable text layers passed');

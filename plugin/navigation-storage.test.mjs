@@ -8,7 +8,7 @@ try{
  const first=join(root,'one'),second=join(root,'two');await mkdir(first);await mkdir(second);
  const store=reviewStore(join(root,'registry')),id=randomUUID(),note={id,kind:'comment',startOffset:0,endOffset:5,selectedText:'Alpha',message:'Clarify Alpha'};
  const data={root:first,identity:'project:one/file.md',sourceName:'file.md',text:'Alpha edited',baseText:'Alpha',annotations:[note]};
- await store.update(data);const state={entries:[[id,{identity:data.identity,root:first,path:'file.md',item:note}]],drafts:{[data.identity]:{text:data.text,base:data.baseText,items:[note]}},removedIds:[]};await store.project(first,state);
+ await store.update(data);const state={entries:[[id,{root:first,identity:data.identity,path:'file.md',item:note}]],drafts:{[data.identity]:{text:data.text,base:data.baseText,items:[note]}},removedIds:[]};await store.project(first,state);
  assert.deepEqual(JSON.parse(await readFile(join(first,'.markatlas/project.json'),'utf8')),state);
  const restored=reviewStore(join(root,'fresh-registry'));assert.deepEqual(await restored.project(first),state);assert.equal((await restored.resolve(id)).comment,note.message);
  assert.deepEqual((await restored.project(second)).entries,[],'projects do not share notes');
